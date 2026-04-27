@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luci Boost Pricing Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#08090c;
+--bg2:#0f1118;
+--bg3:#181b24;
+--glass:rgba(255,255,255,0.04);
+--border:rgba(255,255,255,0.06);
+--border2:rgba(255,255,255,0.14);
+--text:#f0f1f5;
+--muted:#4e5263;
+--muted2:#7a7f94;
+--red:#ff3b5c;
+--blue:#3d8ef8;
+--green:#00d084;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;overflow-x:hidden;}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background-image:url('https://grainy-gradients.vercel.app/noise.svg');opacity:0.05;z-index:9999;}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;border-bottom:1px solid var(--border);}
+.logo{font-family:'Bebas Neue';font-size:32px;letter-spacing:4px;}
+.logo span{color:var(--red);}
+.container{padding:40px 20px;max-width:900px;margin:auto;}
+.card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:30px;margin-bottom:25px;transition:0.25s;position:relative;overflow:hidden;}
+.card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);}
+.section-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;display:block;}
+
+.region-row{display:flex;gap:8px;margin-bottom:20px;}
+.region-btn{padding:8px 22px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-family:'Space Grotesk';font-size:14px;font-weight:600;cursor:pointer;transition:0.2s;letter-spacing:1px;}
+.region-btn.active{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 0 12px rgba(255,59,92,0.4);}
+
+.input-row{display:flex;gap:10px;margin-bottom:20px;}
+.input-row input{width:50%;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:'JetBrains Mono';text-align:center;}
+
+.slider-wrap{position:relative;height:50px;margin:0 10px;}
+.track{position:absolute;top:50%;left:0;right:0;height:6px;background:var(--bg3);transform:translateY(-50%);border-radius:6px;}
+.range{position:absolute;top:50%;height:6px;background:linear-gradient(90deg,var(--red),var(--blue));transform:translateY(-50%);border-radius:6px;pointer-events:none;}
+input[type=range]{position:absolute;width:100%;height:50px;top:0;left:0;-webkit-appearance:none;background:transparent;pointer-events:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;height:20px;width:20px;border-radius:50%;background:var(--red);box-shadow:0 0 10px rgba(255,59,92,0.6);cursor:pointer;pointer-events:all;}
+.thumb-tooltip{position:absolute;top:-32px;transform:translateX(-50%);background:var(--red);color:#fff;font-family:'JetBrains Mono';font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity 0.15s;z-index:10;}
+.thumb-tooltip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--red);}
+.thumb-tooltip.show{opacity:1;}
+.values{display:flex;justify-content:space-between;margin-top:12px;font-family:'JetBrains Mono';color:var(--muted2);font-size:13px;}
+
+#addonCard{overflow:hidden;max-height:600px;opacity:1;transition:max-height 0.4s ease,opacity 0.3s ease,margin-bottom 0.4s ease,padding 0.3s ease;}
+#addonCard.hidden{max-height:0;opacity:0;margin-bottom:0;padding-top:0;padding-bottom:0;border:none;pointer-events:none;}
+
+.addon-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.addon-item:last-child{border-bottom:none;}
+.addon-left{display:flex;align-items:center;gap:12px;}
+.addon-checkbox{width:18px;height:18px;accent-color:var(--red);cursor:pointer;flex-shrink:0;}
+.addon-icon{width:20px;height:20px;flex-shrink:0;opacity:0.85;}
+.addon-name{font-size:14px;color:var(--text);}
+.addon-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.addon-price{font-family:'JetBrains Mono';font-size:14px;color:var(--green);}
+
+.help-btn{width:20px;height:20px;border-radius:50%;border:1px solid var(--muted);background:transparent;color:var(--muted2);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;transition:0.2s;}
+.help-btn:hover{border-color:var(--blue);color:var(--blue);}
+.help-popup{position:absolute;right:28px;top:50%;transform:translateY(-50%);background:#1a1d2a;border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--muted2);width:230px;line-height:1.6;z-index:100;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.5);}
+.help-btn:hover .help-popup,.help-btn.open .help-popup{display:block;}
+
+.result{font-family:'JetBrains Mono';font-size:42px;margin-top:10px;color:var(--green);display:inline-block;}
+.result.glow{animation:glowPulse 0.5s ease-out forwards;}
+@keyframes glowPulse{
+  0%{text-shadow:0 0 8px rgba(0,208,132,0.3);}
+  30%{text-shadow:0 0 24px rgba(0,208,132,1),0 0 48px rgba(0,208,132,0.6);}
+  100%{text-shadow:0 0 0px rgba(0,208,132,0);}
+}
+.result-base{font-family:'JetBrains Mono';font-size:13px;color:var(--muted2);margin-top:8px;}
+.disclaimer{font-size:12px;color:var(--muted);margin-top:16px;padding-top:14px;border-top:1px solid var(--border);line-height:1.6;}
+.disclaimer span{color:var(--muted2);}
+
+/* PAYMENT */
+.payment-section{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);}
+.payment-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:block;}
+.payment-icons{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.pay-badge{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:600;letter-spacing:0.5px;transition:0.2s;}
+.pay-badge:hover{transform:translateY(-1px);}
+.pay-badge svg{width:16px;height:16px;flex-shrink:0;}
+.pay-badge.btc{color:#f7931a;border-color:rgba(247,147,26,0.25);}
+.pay-badge.eth{color:#627eea;border-color:rgba(98,126,234,0.25);}
+.pay-badge.usdt{color:#26a17b;border-color:rgba(38,161,123,0.25);}
+.pay-badge.paypal{color:#009cde;border-color:rgba(0,156,222,0.25);}
+.pay-badge.revolut{color:#8b5cf6;border-color:rgba(139,92,246,0.25);}
+
+.footer{text-align:center;padding:30px;color:var(--muted);font-size:12px;}
+
+/* CART BUTTON */
+.cart-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;margin-top:20px;padding:15px 24px;
+  background:var(--red);border:none;border-radius:12px;
+  color:#fff;font-family:'Space Grotesk';font-size:15px;font-weight:600;letter-spacing:1px;
+  cursor:pointer;transition:0.2s;box-shadow:0 0 18px rgba(255,59,92,0.35);
+  text-transform:uppercase;
+}
+.cart-btn:hover{box-shadow:0 0 32px rgba(255,59,92,0.65);transform:translateY(-2px);}
+.cart-btn:active{transform:translateY(0);}
+.cart-btn svg{width:18px;height:18px;flex-shrink:0;}
+.cart-btn.added{background:var(--green);box-shadow:0 0 18px rgba(0,208,132,0.4);}
+.cart-btn.added:hover{box-shadow:0 0 32px rgba(0,208,132,0.65);}
+
+/* CART TOAST */
+.toast{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--bg3);border:1px solid var(--green);border-radius:12px;
+  padding:14px 24px;font-size:14px;color:var(--green);font-weight:600;
+  display:flex;align-items:center;gap:10px;
+  opacity:0;transition:opacity 0.3s,transform 0.3s;pointer-events:none;z-index:1000;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+<div class="logo"><span>LUCI</span> BOOST</div>
+</div>
+
+<div class="container">
+
+<div class="card">
+  <span class="section-label">Region</span>
+  <div class="region-row">
+    <button class="region-btn active" id="btnEU" onclick="setRegion('EU')">EU</button>
+    <button class="region-btn" id="btnUS" onclick="setRegion('US')">US</button>
+  </div>
+  <span class="section-label">Level Range</span>
+  <div class="input-row">
+    <input type="number" id="minInput" min="1" max="70" value="1">
+    <input type="number" id="maxInput" min="1" max="70" value="70">
+  </div>
+  <div class="slider-wrap" id="sliderWrap">
+    <div class="track"></div>
+    <div class="range" id="rangeBar"></div>
+    <div class="thumb-tooltip" id="tooltipStart">1</div>
+    <div class="thumb-tooltip" id="tooltipEnd">70</div>
+    <input type="range" min="1" max="70" value="1" id="start">
+    <input type="range" min="1" max="70" value="70" id="end">
+  </div>
+  <div class="values">
+    <span id="startVal">1</span>
+    <span id="endVal">70</span>
+  </div>
+</div>
+
+<div class="card" id="addonCard">
+  <span class="section-label">Additional Options</span>
+
+  <div class="addon-item">
+    <div class="addon-left">
+      <input type="checkbox" class="addon-checkbox" id="chkKara" onchange="update()">
+      <svg class="addon-icon" viewBox="0 0 24 24" fill="none" stroke="#ffb830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      <span class="addon-name">Karazhan Attunement</span>
+    </div>
+    <div class="addon-right">
+      <span class="addon-price">+$90.00</span>
+      <div class="help-btn" onclick="this.classList.toggle('open')">?
+        <div class="help-popup">Our team will guide your character through the full attunement questline, granting you full access to the Karazhan raid.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="addon-item">
+    <div class="addon-left">
+      <input type="checkbox" class="addon-checkbox" id="chkPreRaid" onchange="update()">
+      <svg class="addon-icon" viewBox="0 0 24 24" fill="none" stroke="#3d8ef8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+      <span class="addon-name">Pre-raid Gear</span>
+    </div>
+    <div class="addon-right">
+      <span class="addon-price">+$130.00</span>
+      <div class="help-btn" onclick="this.classList.toggle('open')">?
+        <div class="help-popup">Your character will be geared up with 100–115 ilvl pieces handpicked for your spec, ready for raid progression.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="addon-item">
+    <div class="addon-left">
+      <input type="checkbox" class="addon-checkbox" id="chkMount60" onchange="update()">
+      <svg class="addon-icon" viewBox="0 0 24 24" fill="none" stroke="#00d084" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg>
+      <span class="addon-name">60% Flying Mount</span>
+    </div>
+    <div class="addon-right">
+      <span class="addon-price">+$47.00</span>
+      <div class="help-btn" onclick="this.classList.toggle('open')">?
+        <div class="help-popup">We will get your character flight-ready — covering the riding skill, 100% ground mount, flying skill, and a 60% speed flying mount.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="addon-item">
+    <div class="addon-left">
+      <input type="checkbox" class="addon-checkbox" id="chkMount280" onchange="update()">
+      <svg class="addon-icon" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.5-1.5 3 0 4.5M4.5 16.5c1.5-1.5 3-1.5 4.5 0M4.5 16.5L12 9l1.5 1.5M9 12l3-3 6-6 3 3-6 6-3 3M9 12l3 3"/><path d="M14.5 8.5l1-1"/></svg>
+      <span class="addon-name">280% Flying Mount</span>
+    </div>
+    <div class="addon-right">
+      <span class="addon-price">+$173.00</span>
+      <div class="help-btn" onclick="this.classList.toggle('open')">?
+        <div class="help-popup">Full epic flight unlocked — we handle the training and provide a 280% speed flying mount for your character.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="addon-item">
+    <div class="addon-left">
+      <input type="checkbox" class="addon-checkbox" id="chkStream" onchange="update()">
+      <svg class="addon-icon" viewBox="0 0 24 24" fill="none" stroke="#e0267a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#e0267a"/></svg>
+      <span class="addon-name">Live Stream</span>
+    </div>
+    <div class="addon-right">
+      <span class="addon-price">+$10.00</span>
+      <div class="help-btn" onclick="this.classList.toggle('open')">?
+        <div class="help-popup">Watch your boost happen in real time through a private stream link, just for you.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <span class="section-label">Price</span>
+  <div class="result" id="price">$0.00</div>
+  <div class="result-base" id="priceBreakdown"></div>
+  <div class="disclaimer">
+    <span>⚠ Estimated price only.</span> Final price may vary — feel free to reach out and we will work something out.
+  </div>
+
+  <button class="cart-btn" id="cartBtn" onclick="addToCart()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+    </svg>
+    <span id="cartBtnText">Add to Cart</span>
+  </button>
+
+  <div class="payment-section">
+    <span class="payment-label">We Accept</span>
+    <div class="payment-icons">
+
+      <!-- Bitcoin -->
+      <div class="pay-badge btc">
+        <svg viewBox="0 0 24 24" fill="#f7931a"><path d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.546zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.925zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.09z"/></svg>
+        Bitcoin
+      </div>
+
+      <!-- Ethereum -->
+      <div class="pay-badge eth">
+        <svg viewBox="0 0 24 24" fill="#627eea"><path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z"/></svg>
+        Ethereum
+      </div>
+
+      <!-- USDT -->
+      <div class="pay-badge usdt">
+        <svg viewBox="0 0 24 24" fill="#26a17b"><path d="M17.922 2.91H6.078L1.004 12l5.074 9.09h11.844L22.996 12zm-5.404 12.481v-.002c-.103.007-.633.04-1.514.04-.786 0-1.344-.03-1.54-.04v.002c-3.037-.134-5.3-.664-5.3-1.298s2.263-1.166 5.3-1.3v2.072c.2.014.77.048 1.555.048.944 0 1.416-.04 1.498-.048v-2.072c3.03.134 5.287.665 5.287 1.3s-2.258 1.163-5.287 1.298zm0-2.85v-1.851h4.228V8.764H7.254v1.926h4.228v1.851c-3.43.157-6.007.838-6.007 1.657s2.578 1.498 6.007 1.657v5.934h1.036v-5.934c3.423-.158 5.994-.837 5.994-1.657s-2.57-1.5-5.994-1.657z"/></svg>
+        USDT
+      </div>
+
+      <!-- PayPal -->
+      <div class="pay-badge paypal">
+        <svg viewBox="0 0 24 24" fill="#009cde"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 0 0-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 0 0 .554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.816-5.09a.932.932 0 0 1 .923-.788h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.777-4.471z"/></svg>
+        PayPal
+      </div>
+
+      <!-- Revolut -->
+      <div class="pay-badge revolut">
+        <svg viewBox="0 0 24 24" fill="#8b5cf6"><path d="M15.108 0H2v24h5.867v-8.031h2.festivities108l3.919 8.031H20l-4.326-8.591C17.861 14.142 19.2 11.967 19.2 9.245 19.2 3.837 17.22 0 15.108 0zM13.387 11.26H7.867V4.73h5.52c1.644 0 2.946 1.457 2.946 3.265 0 1.807-1.302 3.265-2.946 3.265z"/></svg>
+        Revolut
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">LUCI BOOST © Pricing Simulation</div>
+
+<script>
+const data=[0,16.74,17.06,17.40,17.73,18.07,18.40,18.74,19.08,19.41,19.75,20.07,20.41,20.74,21.08,22.14,23.19,24.24,25.30,26.35,27.41,28.46,29.51,30.57,31.62,33.88,36.15,38.42,40.68,42.95,45.21,47.47,49.74,52.00,54.26,56.53,58.79,61.05,63.33,65.59,68.87,72.15,75.43,78.70,81.98,85.73,89.48,93.23,96.98,100.72,104.82,108.92,113.02,117.12,121.22,125.32,129.42,133.52,137.62,141.72,147.57,155.77,165.14,174.51,185.05,196.76,210.82,229.56,249.47,271.72];
+
+function getBase(s,e){return data[e-1]-data[s-1];}
+function getMultiplier(s,e){
+  const range=e-s,avg=(s+e)/2;
+  let m=1+0.45*Math.max(0,Math.min(1,(10-range)/10));
+  const lvl=(avg-1)/69;
+  m+=0.28*Math.pow(lvl,1.6);
+  if(e>=60){const t=(e-60)/10;m+=0.15*Math.pow(Math.max(0,Math.min(1,t)),1.2);}
+  m-=0.18*Math.pow(Math.max(0,Math.min(1,range/60)),1.1);
+  return Math.max(1,Math.min(m,1.55));
+}
+function modelPriceNoCal(s,e){return getBase(s,e)*getMultiplier(s,e)*0.9;}
+const anchors=[{s:1,e:60,target:150},{s:60,e:70,target:130},{s:58,e:60,target:25},{s:58,e:70,target:155}];
+function calibrationFactor(s,e){
+  let num=0,den=0;
+  for(const a of anchors){
+    const d=Math.abs(s-a.s)+Math.abs(e-a.e);
+    const w=1/(1+d);
+    const base=modelPriceNoCal(a.s,a.e);
+    const f=a.target/Math.max(1e-6,base);
+    num+=w*f;den+=w;
+  }
+  return Math.max(0.7,Math.min(2.2,num/den));
+}
+
+let region='EU';
+function setRegion(r){
+  region=r;
+  document.getElementById('btnEU').classList.toggle('active',r==='EU');
+  document.getElementById('btnUS').classList.toggle('active',r==='US');
+  update();
+}
+
+const startEl=document.getElementById('start');
+const endEl=document.getElementById('end');
+const minInput=document.getElementById('minInput');
+const maxInput=document.getElementById('maxInput');
+const priceEl=document.getElementById('price');
+const breakdownEl=document.getElementById('priceBreakdown');
+const startVal=document.getElementById('startVal');
+const endVal=document.getElementById('endVal');
+const rangeBar=document.getElementById('rangeBar');
+const tooltipStart=document.getElementById('tooltipStart');
+const tooltipEnd=document.getElementById('tooltipEnd');
+const sliderWrap=document.getElementById('sliderWrap');
+const addonCard=document.getElementById('addonCard');
+
+function positionTooltip(tooltip,percent){
+  tooltip.style.left=(percent*sliderWrap.offsetWidth)+'px';
+}
+
+function triggerGlow(newVal){
+  priceEl.innerText='$'+newVal;
+  priceEl.classList.remove('glow');
+  void priceEl.offsetWidth;
+  priceEl.classList.add('glow');
+}
+
+function update(){
+  let s=parseInt(startEl.value);
+  let e=parseInt(endEl.value);
+  if(s>=e)s=e-1;
+  if(e<=s)e=s+1;
+  if(s<1)s=1;if(e>70)e=70;
+  startEl.value=s;endEl.value=e;
+  minInput.value=s;maxInput.value=e;
+
+  const pS=(s-1)/69,pE=(e-1)/69;
+  rangeBar.style.left=(pS*100)+'%';
+  rangeBar.style.width=((pE-pS)*100)+'%';
+  tooltipStart.innerText=s;tooltipEnd.innerText=e;
+  positionTooltip(tooltipStart,pS);
+  positionTooltip(tooltipEnd,pE);
+  startVal.innerText=s;endVal.innerText=e;
+
+  const isMax=(e===70);
+  if(!isMax){
+    addonCard.classList.add('hidden');
+    ['chkKara','chkPreRaid','chkMount60','chkMount280','chkStream'].forEach(id=>{
+      document.getElementById(id).checked=false;
+    });
+  } else {
+    addonCard.classList.remove('hidden');
+  }
+
+  let raw=getBase(s,e)*getMultiplier(s,e)*0.78;
+  let levelPrice=raw*calibrationFactor(s,e);
+  if(s===1&&e===70)levelPrice*=0.93;
+  if(region==='US')levelPrice+=1;
+
+  let addons=0;
+  if(isMax){
+    if(document.getElementById('chkKara').checked) addons+=90;
+    if(document.getElementById('chkPreRaid').checked) addons+=130;
+    if(document.getElementById('chkMount60').checked) addons+=47;
+    if(document.getElementById('chkMount280').checked) addons+=173;
+    if(document.getElementById('chkStream').checked) addons+=10;
+  }
+
+  const total=levelPrice+addons;
+  triggerGlow(total.toFixed(2));
+
+  let parts=['Leveling: $'+levelPrice.toFixed(2)];
+  if(addons>0) parts.push('Add-ons: $'+addons.toFixed(2));
+  breakdownEl.innerText=parts.join('  ·  ');
+}
+
+startEl.addEventListener('mousedown',()=>tooltipStart.classList.add('show'));
+startEl.addEventListener('touchstart',()=>tooltipStart.classList.add('show'));
+endEl.addEventListener('mousedown',()=>tooltipEnd.classList.add('show'));
+endEl.addEventListener('touchstart',()=>tooltipEnd.classList.add('show'));
+document.addEventListener('mouseup',()=>{tooltipStart.classList.remove('show');tooltipEnd.classList.remove('show');});
+document.addEventListener('touchend',()=>{tooltipStart.classList.remove('show');tooltipEnd.classList.remove('show');});
+
+startEl.oninput=update;endEl.oninput=update;
+minInput.oninput=()=>{startEl.value=minInput.value;update();};
+maxInput.oninput=()=>{endEl.value=maxInput.value;update();};
+
+update();
+
+// ── CART ──
+let cartItems=[];
+let toastTimer=null;
+
+function addToCart(){
+  const s=parseInt(startEl.value);
+  const e=parseInt(endEl.value);
+  const priceText=document.getElementById('price').innerText.replace('$','');
+  const price=parseFloat(priceText);
+  const addons=[];
+  const addonMap={chkKara:'Karazhan Attunement',chkPreRaid:'Pre-raid Gear',chkMount60:'60% Flying Mount',chkMount280:'280% Flying Mount',chkStream:'Live Stream'};
+  for(const [id,label] of Object.entries(addonMap)){
+    const el=document.getElementById(id);
+    if(el&&el.checked) addons.push(label);
+  }
+  cartItems.push({region,levelFrom:s,levelTo:e,addons,price});
+
+  const btn=document.getElementById('cartBtn');
+  const btnText=document.getElementById('cartBtnText');
+  btn.classList.add('added');
+  btnText.innerText='✓ Added!';
+  setTimeout(()=>{btn.classList.remove('added');btnText.innerText='Add to Cart';},2000);
+
+  const addonStr=addons.length?' + '+addons.join(', '):'';
+  document.getElementById('toastMsg').innerText='Lv '+s+'→'+e+' ('+region+')'+addonStr+' — $'+price.toFixed(2)+' added!';
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+</script>
+
+<div class="toast" id="toast">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg">Added to cart!</span>
+</div>
+
+</body>
+</html>
